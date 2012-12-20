@@ -27,7 +27,7 @@ ASMFLAGS += -x assembler-with-cpp -Wa,-gdwarf2
 
 ## Linker flags
 LDFLAGS = $(COMMON)
-LDFLAGS += 
+LDFLAGS += -lc
 
 
 ## Intel Hex file production flags
@@ -42,7 +42,7 @@ USBDRV = ../v-usb/usbdrv/
 INCLUDES = -I"." -I$(USBDRV)
 
 ## Objects that must be built in order to link
-OBJECTS = main.o usbdrvasm.o oddebug.o usbdrv.o 
+OBJECTS = main.o led.c usbdrvasm.o oddebug.o usbdrv.o 
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 

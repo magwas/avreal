@@ -363,6 +363,7 @@ uchar    i;
 int main(void)
 {
 
+ledder();
     wdt_enable(WDTO_1S);
     odDebugInit();
     hardwareInit();
