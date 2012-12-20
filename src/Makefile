@@ -84,3 +84,7 @@ clean:
 
 prog: avreal.hex
 	avrdude -p c32 -c gpio -v -U flash:w:avreal.hex
+
+debug: avreal.elf
+	simulavr -d at90can32 --file avreal.elf -g & ddd --debugger avr-gdb&
+
