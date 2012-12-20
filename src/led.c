@@ -9,7 +9,7 @@
 
 void ledder( void )
 {
-    OUTDDR  = 0x70;             // set bit 0 of output port to output 
+    OUTDDR  = 0xff;             // set bit 0 of output port to output 
 
     while (1)
     {
