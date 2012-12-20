@@ -82,3 +82,5 @@ clean:
 ## Other dependencies
 -include $(shell mkdir dep 2>/dev/null) $(wildcard dep/*)
 
+prog: avreal.hex
+	avrdude -p c32 -c gpio -v -U flash:w:avreal.hex
