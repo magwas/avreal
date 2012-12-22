@@ -17,6 +17,7 @@
 
 #include "usbdrv.h"
 #include "oddebug.h"
+#include "uart.h"
 
 #define CMD_WHO     "avreal"
 
@@ -364,6 +365,8 @@ int main(void)
 {
 
 //ledder();
+    uart_init();
+    uart_puts("hello");
     wdt_enable(WDTO_1S);
     odDebugInit();
     hardwareInit();

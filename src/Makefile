@@ -18,7 +18,7 @@ COMMON = -mmcu=$(MCU)
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON)
 CFLAGS += -Wall -gdwarf-2 -DF_CPU=16000000UL -Os -fsigned-char
-CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d -O
+CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d -O -DBAUD=9600
 
 ## Assembly specific flags
 ASMFLAGS = $(COMMON)
@@ -42,7 +42,7 @@ USBDRV = ../v-usb/usbdrv/
 INCLUDES = -I"." -I$(USBDRV)
 
 ## Objects that must be built in order to link
-OBJECTS = main.o led.o usbdrvasm.o oddebug.o usbdrv.o 
+OBJECTS = main.o led.o uart.o usbdrvasm.o oddebug.o usbdrv.o 
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 
