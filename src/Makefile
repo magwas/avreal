@@ -18,7 +18,7 @@ COMMON = -mmcu=$(MCU)
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON)
 CFLAGS += -Wall -gdwarf-2 -DF_CPU=16000000UL -Os -fsigned-char
-CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
+CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d -O
 
 ## Assembly specific flags
 ASMFLAGS = $(COMMON)
@@ -87,4 +87,7 @@ prog: avreal.hex
 
 debug: avreal.elf
 	simulavr -d at90can32 --file avreal.elf -g & ddd --debugger avr-gdb&
+
+fuses:
+	avrdude -p c32 -c gpio -U lfuse:w:0xde:m -U hfuse:w:0x99:m -U efuse:w:0xff:m
 

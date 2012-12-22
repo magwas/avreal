@@ -26,22 +26,11 @@ section at the end of this file).
 
 /* ---------------------------- Hardware Config ---------------------------- */
 
-#ifndef PORTC
 #define USB_CFG_IOPORTNAME      B
-#define USB_CFG_DMINUS_BIT      3
-#ifndef PORTA
-/*  ATtiny45/85     */
-#define USB_CFG_DPLUS_BIT       2
-#else
-/*  ATtiny461/861   */
-#define USB_CFG_DPLUS_BIT       6
-#endif
-#else
-#define USB_CFG_IOPORTNAME      D
 /* This is the port where the USB bus is connected. When you configure it to
  * "B", the registers PORTB, PINB and DDRB will be used.
  */
-#define USB_CFG_DMINUS_BIT      3
+#define USB_CFG_DMINUS_BIT      0
 /* This is the bit number in USB_CFG_IOPORT where the USB D- line is connected.
  * This may be any bit in the port.
  */
@@ -54,7 +43,6 @@ section at the end of this file).
  * interrupt, the USB interrupt will also be triggered at Start-Of-Frame
  * markers every millisecond.]
  */
-#endif
 #define USB_CFG_CLOCK_KHZ       (F_CPU/1000)
 /* Clock rate of the AVR in kHz. Legal values are 12000, 12800, 15000, 16000,
  * 16500 and 20000. The 12.8 MHz and 16.5 MHz versions of the code require no
