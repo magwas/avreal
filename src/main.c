@@ -44,9 +44,9 @@ static const PROGMEM char configDescrCDC[] = {   /* USB configuration descriptor
     1,          /* index of this configuration */
     0,          /* configuration name string index */
 #if USB_CFG_IS_SELF_POWERED
-    USBATTR_SELFPOWER,  /* attributes */
+    (1 << 7) | USBATTR_SELFPOWER,  /* attributes */
 #else
-    USBATTR_BUSPOWER,   /* attributes */
+    (1 << 7) |USBATTR_BUSPOWER,   /* attributes */
 #endif
     USB_CFG_MAX_BUS_POWER/2,            /* max USB current in 2mA units */
 
@@ -133,7 +133,6 @@ uchar usbFunctionDescriptor(usbRequest_t *rq)
     }
 }
 
-static uchar    modeBuffer[7];
 static uchar    sendEmptyFrame;
 static uchar    intr3Status;    /* used to control interrupt endpoint transmissions */
 
@@ -143,6 +142,7 @@ static uchar    intr3Status;    /* used to control interrupt endpoint transmissi
 
 uchar usbFunctionSetup(uchar data[8])
 {
+
 usbRequest_t    *rq = (void *)data;
 
     if((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_CLASS){    /* class request type */
@@ -154,6 +154,7 @@ usbRequest_t    *rq = (void *)data;
         }
 #if USB_CFG_HAVE_INTRIN_ENDPOINT3
         if(rq->bRequest == SET_CONTROL_LINE_STATE){
+UDEBUG("Carrier detect");
             /* Report serial state (carrier detect). On several Unix platforms,
              * tty devices can only be opened when carrier detect is set.
              */
@@ -168,8 +169,10 @@ usbRequest_t    *rq = (void *)data;
 #endif
     }
 
-    return 0;
+    return 0x0;
 }
+
+char modeBuffer[7];
 
 /*---------------------------------------------------------------------------*/
 /* usbFunctionRead                                                           */
@@ -192,144 +195,21 @@ uchar usbFunctionWrite( uchar *data, uchar len )
 }
 
 
-#define TBUF_SZ     256
-#define TBUF_MSK    (TBUF_SZ-1)
-
-static uchar tos, val, val2;
-static uchar rcnt, twcnt, trcnt;
-static char rbuf[8], tbuf[TBUF_SZ];
-
-static uchar u2h( uchar u )
-{
-    if( u>9 )
-        u    += 7;
-    return u+'0';
-}
-
-static uchar h2u( uchar h )
-{
-    h    -= '0';
-    if( h>9 )
-        h    -= 7;
-    return h;
-}
-
-static void out_char( uchar c )
-{
-    tbuf[twcnt++]    = c;
-#if TBUF_SZ<256
-    twcnt   &= TBUF_MSK;
-#endif
-}
-
+unsigned char buffer[17];
+int tlen;
 
 void usbFunctionWriteOut( uchar *data, uchar len )
 {
 
-    /*  postpone receiving next data    */
-    usbDisableAllRequests();
+	if ( len>17 ) {
+		len = 17;
+	}
 
-    /*    host -> device:  request   */
-    do {
-        char    c;
-
-        //    delimiter?
-        c    = *data++;
-        if( c>0x20 ) {
-            if( 'a'<=c && c<='z' )
-                c    -= 0x20;        //    to upper case
-            rbuf[rcnt++]    = c;
-            rcnt    &= 7;
-            continue;
-        }
-        if( rcnt==0 )
-            continue;
-
-        //    command
-        if( rcnt==1 ) {
-            char            *ptr;
-            volatile uchar  *addr   = (uchar *)((unsigned int)tos);
-            uchar           x;
-
-            switch( rbuf[0] ) {
-            case '@':   //    who
-                        ptr = PSTR( CMD_WHO );
-                        while( (c=pgm_read_byte(ptr++))!=0 ) {
-                            out_char(c); 
-                        }
-                        break;
-            case '?':   //    get
-                        x    = *addr;
-                        out_char( u2h(x>>4) ); 
-                        out_char( u2h(x&0x0f) ); 
-                        break;
-            case '=':   //    set
-                        cli();
-                        *addr    = val;
-                        sei();
-                        break;
-            case '$':   //    set twice
-                        cli();
-                        *addr    = val;
-                        *addr    = val2;
-                        sei();
-                        break;
-            case '&':   //    and & set
-                        cli();
-                        *addr    &= val;
-                        sei();
-                        break;
-            case '|':   //    or & set
-                        cli();
-                        *addr    |= val;
-                        sei();
-                        break;
-            case '^':   //    xor & set
-                        cli();
-                        *addr    ^= val;
-                        sei();
-                        break;
-            default:    //    error
-                        out_char( '!' ); 
-            }
-            out_char( '\r' ); 
-            out_char( '\n' ); 
-            rcnt    = 0;
-            continue;
-        }
-
-        //    number
-        if( rcnt==2 ) {
-            val2    = val;
-            val     = tos;
-            tos     = (h2u(rbuf[0])<<4) | h2u(rbuf[1]);
-            rcnt    = 0;
-            continue;
-        }
-
-        //    sfr
-        if( rcnt>=4 ) {
-            val2    = val;
-            val    = tos;
-#if defined (__AVR_ATmega8__) || defined (__AVR_ATmega16__) || !defined PORTC
-            tos    = 0x30 + ( 'D' - rbuf[--rcnt] ) * 3;
-#else
-            tos    = 0x20 + ( rbuf[--rcnt] - 'A' ) * 3;
-#endif
-            rbuf[rcnt]    = 0;
-            if( !strcmp_P(rbuf,PSTR("PIN")) )
-                tos    += 0;
-            else if( !strcmp_P(rbuf,PSTR("DDR")) )
-                tos    += 1;
-            else if( !strcmp_P(rbuf,PSTR("PORT")) )
-                tos    += 2;
-            else
-                tos    = 0x20;        //    error
-            rcnt    = 0;
-        }
-    } while(--len);
-
-    usbEnableAllRequests();
+	int i;
+	for (i=0; i<len; i++) {
+		buffer[i] = data[1];
+	}
+	tlen = len;
 }
 
 
@@ -364,20 +244,16 @@ uchar    i;
 int main(void)
 {
 
-//ledder();
     uart_init();
     uart_puts("hello");
     wdt_enable(WDTO_1S);
-    odDebugInit();
     hardwareInit();
+    UDEBUG("usb0");
     usbInit();
+    UDEBUG("usb1");
 
     intr3Status = 0;
     sendEmptyFrame  = 0;
-
-    rcnt    = 0;
-    twcnt   = 0;
-    trcnt   = 0;
 
     sei();
     for(;;){    /* main event loop */
@@ -386,26 +262,29 @@ int main(void)
 
         /*    device -> host    */
         if( usbInterruptIsReady() ) {
-            if( twcnt!=trcnt || sendEmptyFrame ) {
-                uchar    tlen;
-
-                tlen    = twcnt>=trcnt? (twcnt-trcnt):(TBUF_SZ-trcnt);
+            if( tlen || sendEmptyFrame ) {
                 if( tlen>8 )
                     tlen    = 8;
-                usbSetInterrupt((uchar *)tbuf+trcnt, tlen);
-                trcnt   += tlen;
-                trcnt   &= TBUF_MSK;
-                /* send an empty block after last data block to indicate transfer end */
-                sendEmptyFrame = (tlen==8 && twcnt==trcnt)? 1:0;
+                usbSetInterrupt(buffer, tlen);
+		tlen = 0;
+			sendEmptyFrame = 1;
+		}
+		if ( sendEmptyFrame ) {
+		{
+                	usbSetInterrupt(buffer, 0);
+			sendEmptyFrame = 0;
+		}
             }
         }
 
 #if USB_CFG_HAVE_INTRIN_ENDPOINT3
         /* We need to report rx and tx carrier after open attempt */
         if(intr3Status != 0 && usbInterruptIsReady3()){
+UDEBUG("I3");
             static uchar serialStateNotification[10] = {0xa1, 0x20, 0, 0, 0, 0, 2, 0, 3, 0};
 
             if(intr3Status == 2){
+UDEBUG("SI3");
                 usbSetInterrupt3(serialStateNotification, 8);
             }else{
                 usbSetInterrupt3(serialStateNotification+8, 2);

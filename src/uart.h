@@ -5,3 +5,5 @@ void uart_putchar(char c) ;
 char uart_getchar(void) ;
 void uart_puts(char *str);
 
+#define UDEBUG(s)       uart_puts(s);
+

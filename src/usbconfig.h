@@ -26,15 +26,15 @@ section at the end of this file).
 
 /* ---------------------------- Hardware Config ---------------------------- */
 
-#define USB_CFG_IOPORTNAME      B
+#define USB_CFG_IOPORTNAME      E
 /* This is the port where the USB bus is connected. When you configure it to
  * "B", the registers PORTB, PINB and DDRB will be used.
  */
-#define USB_CFG_DMINUS_BIT      0
+#define USB_CFG_DMINUS_BIT      7
 /* This is the bit number in USB_CFG_IOPORT where the USB D- line is connected.
  * This may be any bit in the port.
  */
-#define USB_CFG_DPLUS_BIT       2
+#define USB_CFG_DPLUS_BIT       6
 /* This is the bit number in USB_CFG_IOPORT where the USB D+ line is connected.
  * This may be any bit in the port. Please note that D+ must also be connected
  * to interrupt pin INT0! [You can also use other interrupts, see section
@@ -150,6 +150,7 @@ section at the end of this file).
  * for long transfers increases the driver size.
  */
 /* #define USB_RX_USER_HOOK(data, len)     if(usbRxToken == (uchar)USBPID_SETUP) blinkLED(); */
+//#define USB_RX_USER_HOOK(data, len)	uart_putchar('r');
 /* This macro is a hook if you want to do unconventional things. If it is
  * defined, it's inserted at the beginning of received message processing.
  * If you eat the received message and don't want default processing to
@@ -157,11 +158,13 @@ section at the end of this file).
  * (besides debugging) is to flash a status LED on each packet.
  */
 /* #define USB_RESET_HOOK(resetStarts)     if(!resetStarts){hadUsbReset();} */
+//#define USB_RESET_HOOK(resetStarts)	uart_putchar('R');uart_putchar('A'+resetStarts);
 /* This macro is a hook if you need to know when an USB RESET occurs. It has
  * one parameter which distinguishes between the start of RESET state and its
  * end.
  */
 /* #define USB_SET_ADDRESS_HOOK()              hadAddressAssigned(); */
+//#define USB_SET_ADDRESS_HOOK() uart_putchar('A');
 /* This macro (if defined) is executed when a USB SET_ADDRESS request was
  * received.
  */
@@ -350,13 +353,15 @@ section at the end of this file).
  * which is not fully supported (such as IAR C) or if you use a differnt
  * interrupt than INT0, you may have to define some of these.
  */
-/* #define USB_INTR_CFG            MCUCR */
-/* #define USB_INTR_CFG_SET        ((1 << ISC00) | (1 << ISC01)) */
-/* #define USB_INTR_CFG_CLR        0 */
-/* #define USB_INTR_ENABLE         GIMSK */
-/* #define USB_INTR_ENABLE_BIT     INT0 */
-/* #define USB_INTR_PENDING        GIFR */
-/* #define USB_INTR_PENDING_BIT    INTF0 */
-/* #define USB_INTR_VECTOR         SIG_INTERRUPT0 */
+// EICRB, ISC60 ISC61
+#define USB_INTR_CFG            EICRB
+#define USB_INTR_CFG_SET        ((1 << ISC60) | (1 << ISC61)) 
+// FIXME: disables all interrupts!
+#define USB_INTR_CFG_CLR        0 
+#define USB_INTR_ENABLE         EIMSK
+#define USB_INTR_ENABLE_BIT     INT6
+#define USB_INTR_PENDING        EIFR
+#define USB_INTR_PENDING_BIT    INTF6 
+#define USB_INTR_VECTOR         SIG_INTERRUPT6
 
 #endif /* __usbconfig_h_included__ */
