@@ -12,13 +12,18 @@ MCU = at90can32
 TARGET = avreal.elf
 CC = avr-gcc
 
+USBDRV = ../v-usb/usbdrv/
+
+## Include Directories
+INCLUDES = -I"." -I$(USBDRV)
 ## Options common to compile, link and assembly rules
 COMMON = -mmcu=$(MCU)
 
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON)
 CFLAGS += -Wall -gdwarf-2 -DF_CPU=16000000UL -Os -fsigned-char
-CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d -O -DBAUD=115200 -DDEBUG_LEVEL=2
+CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
+CFLAGS += -DBAUD=115200 -DDEBUG_LEVEL=2 $(INCLUDES)
 
 ## Assembly specific flags
 ASMFLAGS = $(COMMON)
@@ -37,9 +42,6 @@ HEX_EEPROM_FLAGS = -j .eeprom
 HEX_EEPROM_FLAGS += --set-section-flags=.eeprom="alloc,load"
 HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
-USBDRV = ../v-usb/usbdrv/
-## Include Directories
-INCLUDES = -I"." -I$(USBDRV)
 
 ## Objects that must be built in order to link
 OBJECTS = main.o led.o uart.o usbdrvasm.o oddebug.o usbdrv.o 
@@ -72,7 +74,7 @@ $(TARGET): $(OBJECTS)
 	-avr-objcopy $(HEX_EEPROM_FLAGS) -O ihex $< $@ || exit 0
 
 %.lss: $(TARGET)
-	avr-objdump -h -S $< > $@
+	avr-objdump -h -S --prefix-addresses $< > $@
 
 ## Clean target
 .PHONY: clean

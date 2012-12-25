@@ -5,7 +5,7 @@
  * Tabsize: 4
  * Copyright: (c) 2011 Árpád Magosányi
  * Code based on Osamu Tamura's CDC-IO project: http://www.recursion.jp/avrcdc/cdc-io.html 
- *
+ * License: GPL
  */
 
 #include <string.h>
@@ -15,11 +15,9 @@
 #include <avr/wdt.h>
 #include <util/delay.h>
 
-#include "usbdrv.h"
 #include "oddebug.h"
+#include "usbdrv.h"
 #include "uart.h"
-
-#define CMD_WHO     "avreal"
 
 
 enum {
@@ -44,9 +42,9 @@ static const PROGMEM char configDescrCDC[] = {   /* USB configuration descriptor
     1,          /* index of this configuration */
     0,          /* configuration name string index */
 #if USB_CFG_IS_SELF_POWERED
-    (1 << 7) | USBATTR_SELFPOWER,  /* attributes */
+    (1 << 7) | USBATTR_SELFPOWER,       /* attributes */
 #else
-    (1 << 7) |USBATTR_BUSPOWER,   /* attributes */
+    (1 << 7),                           /* attributes */
 #endif
     USB_CFG_MAX_BUS_POWER/2,            /* max USB current in 2mA units */
 
@@ -133,8 +131,18 @@ uchar usbFunctionDescriptor(usbRequest_t *rq)
     }
 }
 
-static uchar    sendEmptyFrame;
-static uchar    intr3Status;    /* used to control interrupt endpoint transmissions */
+typedef union usbDWord {
+    unsigned long       dword;
+    uchar   bytes[4];
+} usbDWord_t;
+
+
+uchar               sendEmptyFrame;
+static uchar        intr3Status;    /* used to control interrupt endpoint transmissions */
+
+static uchar        stopbit, parity, databit;
+static usbDWord_t   baud;
+
 
 /* ------------------------------------------------------------------------- */
 /* ----------------------------- USB interface ----------------------------- */
@@ -142,7 +150,6 @@ static uchar    intr3Status;    /* used to control interrupt endpoint transmissi
 
 uchar usbFunctionSetup(uchar data[8])
 {
-
 usbRequest_t    *rq = (void *)data;
 
     if((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_CLASS){    /* class request type */
@@ -152,16 +159,17 @@ usbRequest_t    *rq = (void *)data;
         /*    GET_LINE_CODING -> usbFunctionRead()    */
         /*    SET_LINE_CODING -> usbFunctionWrite()    */
         }
-#if USB_CFG_HAVE_INTRIN_ENDPOINT3
         if(rq->bRequest == SET_CONTROL_LINE_STATE){
-UDEBUG("Carrier detect");
+            //UART_CTRL_PORT	= (UART_CTRL_PORT&~(1<<UART_CTRL_DTR))|((rq->wValue.word&1)<<UART_CTRL_DTR);
+
+#if USB_CFG_HAVE_INTRIN_ENDPOINT3
             /* Report serial state (carrier detect). On several Unix platforms,
              * tty devices can only be opened when carrier detect is set.
              */
             if( intr3Status==0 )
                 intr3Status = 2;
-        }
 #endif
+        }
 #if 1
         /*  Prepare bulk-in endpoint to respond to early termination   */
         if((rq->bmRequestType & USBRQ_DIR_MASK) == USBRQ_DIR_HOST_TO_DEVICE)
@@ -169,20 +177,28 @@ UDEBUG("Carrier detect");
 #endif
     }
 
-    return 0x0;
+    return 0;
 }
 
-char modeBuffer[7];
 
 /*---------------------------------------------------------------------------*/
-/* usbFunctionRead                                                           */
+/* usbFunctionRead                                                          */
 /*---------------------------------------------------------------------------*/
 
 uchar usbFunctionRead( uchar *data, uchar len )
 {
-    memcpy( data, modeBuffer, 7 );
+
+    data[0] = baud.bytes[0];
+    data[1] = baud.bytes[1];
+    data[2] = baud.bytes[2];
+    data[3] = baud.bytes[3];
+    data[4] = stopbit;
+    data[5] = parity;
+    data[6] = databit;
+
     return 7;
 }
+
 
 /*---------------------------------------------------------------------------*/
 /* usbFunctionWrite                                                          */
@@ -190,33 +206,35 @@ uchar usbFunctionRead( uchar *data, uchar len )
 
 uchar usbFunctionWrite( uchar *data, uchar len )
 {
-    memcpy( modeBuffer, data, 7 );
+
+    /*    SET_LINE_CODING    */
+    baud.bytes[0] = data[0];
+    baud.bytes[1] = data[1];
+    baud.bytes[2] = data[2];
+    baud.bytes[3] = data[3];
+
+    stopbit    = data[4];
+    parity     = data[5];
+    databit    = data[6];
+
+    if( parity>2 )
+        parity    = 0;
+    if( stopbit==1 )
+        stopbit    = 0;
+
     return 1;
 }
 
 
-unsigned char buffer[17];
-int tlen;
-
 void usbFunctionWriteOut( uchar *data, uchar len )
 {
-
-	if ( len>17 ) {
-		len = 17;
-	}
-
-	int i;
-	for (i=0; i<len; i++) {
-		buffer[i] = data[1];
-	}
-	tlen = len;
+   UDEBUG("wo");
+   UDEBUG(data);
 }
-
 
 
 static void hardwareInit(void)
 {
-uchar    i;
 
     /* activate pull-ups except on USB lines */
     USB_CFG_IOPORT   = (uchar)~((1<<USB_CFG_DMINUS_BIT)|(1<<USB_CFG_DPLUS_BIT));
@@ -228,29 +246,34 @@ uchar    i;
     USBDDR    = (1<<USB_CFG_DMINUS_BIT)|(1<<USB_CFG_DPLUS_BIT);
 #endif
 
-    for(i=0;i<20;i++){  /* 300 ms disconnect */
-        wdt_reset();
-            _delay_ms(15);
-    }
+    /* 250 ms disconnect */
+    wdt_reset();
+    _delay_ms(250);
 
 #ifdef USB_CFG_PULLUP_IOPORT
     usbDeviceConnect();
 #else
     USBDDR    = 0;      /*  remove USB reset condition */
 #endif
+
+    /*    USART configuration    */
+    baud.dword  = 9600;
+    stopbit = 0;
+    parity  = 0;
+    databit = 8;
 }
 
+unsigned char hello[] = "Hello\n\r";
 
 int main(void)
 {
 
-    uart_init();
-    uart_puts("hello");
     wdt_enable(WDTO_1S);
+    //odDebugInit();
+    uart_init();
+    UDEBUG("hello");
     hardwareInit();
-    UDEBUG("usb0");
     usbInit();
-    UDEBUG("usb1");
 
     intr3Status = 0;
     sendEmptyFrame  = 0;
@@ -259,32 +282,26 @@ int main(void)
     for(;;){    /* main event loop */
         wdt_reset();
         usbPoll();
-
-        /*    device -> host    */
-        if( usbInterruptIsReady() ) {
-            if( tlen || sendEmptyFrame ) {
-                if( tlen>8 )
-                    tlen    = 8;
-                usbSetInterrupt(buffer, tlen);
-		tlen = 0;
-			sendEmptyFrame = 1;
-		}
-		if ( sendEmptyFrame ) {
-		{
-                	usbSetInterrupt(buffer, 0);
-			sendEmptyFrame = 0;
-		}
-            }
+	if( usbAllRequestsAreDisabled() ) {
+            usbEnableAllRequests();
         }
+
+	if( usbInterruptIsReady() ) {
+UDEBUG("ready");
+		usbSetInterrupt(hello, 7);
+	}
+	unsigned char c = uart_getchar();
+	if (c) {
+		uart_putchar(c);
+		cmd_in(c);
+	}
 
 #if USB_CFG_HAVE_INTRIN_ENDPOINT3
         /* We need to report rx and tx carrier after open attempt */
         if(intr3Status != 0 && usbInterruptIsReady3()){
-UDEBUG("I3");
             static uchar serialStateNotification[10] = {0xa1, 0x20, 0, 0, 0, 0, 2, 0, 3, 0};
 
             if(intr3Status == 2){
-UDEBUG("SI3");
                 usbSetInterrupt3(serialStateNotification, 8);
             }else{
                 usbSetInterrupt3(serialStateNotification+8, 2);
@@ -293,6 +310,7 @@ UDEBUG("SI3");
         }
 #endif
     }
+
     return 0;
 }
 
