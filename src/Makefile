@@ -44,7 +44,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 
 ## Objects that must be built in order to link
-OBJECTS = main.o led.o uart.o usbdrvasm.o oddebug.o usbdrv.o 
+OBJECTS = main.o led.o uart.o cmd.o usbdrvasm.o usbdrv.o 
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 

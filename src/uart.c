@@ -2,6 +2,8 @@
 
 #include <util/setbaud.h>
 #include <avr/io.h>
+#include "oddebug.h"
+#include "uart.h"
 
 void uart_init(void) {
 	UBRR1H = UBRRH_VALUE;
@@ -39,3 +41,36 @@ void uart_puts(char *str){
 	uart_putchar('\r');
 }
 
+
+static uchar    hexAscii(uchar h)
+{
+    h &= 0xf;
+    if(h >= 10)
+        h += 'a' - (uchar)10 - '0';
+    h += '0';
+    return h;
+}
+
+void printHex(uchar c)
+{
+    uartPutc(hexAscii(c >> 4));
+    uartPutc(hexAscii(c));
+}
+
+#if DEBUG_LEVEL > 0
+
+#warning "Never compile production devices with debugging enabled"
+
+void    odDebug(uchar prefix, uchar *data, uchar len)
+{
+    printHex(prefix);
+    uartPutc(':');
+    while(len--){
+        uartPutc(' ');
+        printHex(*data++);
+    }
+    uartPutc('\r');
+    uartPutc('\n');
+}
+
+#endif
