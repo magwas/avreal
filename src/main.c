@@ -271,7 +271,7 @@ int main(void)
 
 	wdt_enable(WDTO_1S);
 	//odDebugInit();
-	uart_init();
+	uartInit();
 	cmd_init();
 	UDEBUG("hello");
 	hardwareInit();
@@ -284,17 +284,14 @@ int main(void)
 	for(;;){	/* main event loop */
 		wdt_reset();
 		usbPoll();
+		uartDo();
 		if( usbAllRequestsAreDisabled() ) {
 			usbEnableAllRequests();
 		}
 
-		if( usbInterruptIsReady() ) {
-			UDEBUG("ready");
-			usbSetInterrupt(hello, 7);
-		}
-		unsigned char c = uart_getchar();
+		unsigned char c = uartGetChar();
 		if (c) {
-			uart_putchar(c);
+			uartPutChar(c);
 			cmd_in(c);
 		}
 

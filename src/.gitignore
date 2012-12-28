@@ -1,0 +1,7 @@
+*.pyc
+*.o
+avreal.eep
+avreal.elf
+avreal.hex
+avreal.lss
+

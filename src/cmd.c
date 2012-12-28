@@ -1,35 +1,40 @@
 #include <usbdrv.h>
 #include "uart.h"
 #include "cmd.h"
+#include <oddebug.h>
 
-
-enum {
-        CMD_STATE_BEGIN = 0,
-};
-
-char cmd_state;
 
 void cmd_init() {
-	cmd_state = CMD_STATE_BEGIN;
+}
+
+
+void do_stats() {
 }
 
 void cmd_in(unsigned char c) {
+	unsigned char * i;
 	switch(c) {
+		case 'X':
+			UDEBUG("sending zero");
+			usbSetInterrupt((unsigned char *)"",0);
+			break;
 		case 'x':
 			usbSetInterrupt((unsigned char *)"hi!\n\r",5);
 			UDEBUG("hi sent");
 			// no break
 		case 'l':
-			printHex(usbTxStatus1.len);
+			uartPrintHex(usbTxStatus1.len);
+			DBG1(0xfa,usbTxStatus1.buffer,usbTxStatus1.len);
 			break;
 		case 'r':
-			printHex(usbRxLen);
+			uartPrintHex(usbRxLen);
 			break;
-		case 'c':
-			printHex(fastCounter);
-			break;
-		case 'C':
-			printHex(fastCounter2);
+		case 'd':
+			for(i=(unsigned char *)4;i<(unsigned char *)14;i++) {
+				uartPrintHex(*i);
+			}
+			uartPutChar('\n');
+			uartPutChar('\r');
 			break;
 		default:
 			cmd_init();

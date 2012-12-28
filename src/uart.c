@@ -3,9 +3,16 @@
 #include <util/setbaud.h>
 #include <avr/io.h>
 #include "oddebug.h"
+#include "ringbuffer.h"
 #include "uart.h"
 
-void uart_init(void) {
+
+unsigned char uartrxbuf[uartBufLen+3];
+unsigned char uarttxbuf[uartBufLen+3];
+
+void uartInit(void) {
+	ringbufferInit(uartRxBuf,uartBufLen);
+	ringbufferInit(uartTxBuf,uartBufLen);
 	UBRR1H = UBRRH_VALUE;
 	UBRR1L = UBRRL_VALUE;
 
@@ -20,25 +27,44 @@ void uart_init(void) {
 }
 
 /* FIXME blocking */
-void uart_putchar(char c) {
+void uartPutChar(char c) {
+	return ringbufferPutChar(uartTxBuf,c);
+}
+
+unsigned char uartGetChar() {
+	return ringbufferGetChar(uartRxBuf);
+}
+
+void uartTransmit(char c) {
 	loop_until_bit_is_set(UCSR1A, UDRE1); /* Wait until data register empty. */
 	UDR1 = c;
 }
 
-char uart_getchar(void) {
-	if (! (UCSR1A&(1<<RXC1))) {
-		return(0); 
-	}
+unsigned char uartReceive(void) {
+	loop_until_bit_is_set(UCSR1A, RXC1);
 	return UDR1;
 }
+void uartDo(void) {
+	/*transmit*/
+	while ((! ringbufferEmpty(uartTxBuf)) && bit_is_set(UCSR1A,UDRE1))
+ {
+		UDR1 = ringbufferGetChar(uartTxBuf);
+	}
+	/*receive*/
+	if ((! ringbufferFull(uartRxBuf)) && bit_is_set(UCSR1A,RXC1)) {
+		unsigned char c;
+		c = UDR1;
+		ringbufferPutChar(uartRxBuf,c);
+	}
+}
 
-void uart_puts(char *str){
+void uartPuts(char *str){
 	char * p;
 	for(p=str;*p!=0;p++) {
-		uart_putchar(*p);
+		uartPutChar(*p);
 	}
-	uart_putchar('\n');
-	uart_putchar('\r');
+	uartPutChar('\n');
+	uartPutChar('\r');
 }
 
 
@@ -51,10 +77,10 @@ static uchar    hexAscii(uchar h)
     return h;
 }
 
-void printHex(uchar c)
+void uartPrintHex(uchar c)
 {
-    uartPutc(hexAscii(c >> 4));
-    uartPutc(hexAscii(c));
+    uartPutChar(hexAscii(c >> 4));
+    uartPutChar(hexAscii(c));
 }
 
 #if DEBUG_LEVEL > 0
@@ -63,14 +89,14 @@ void printHex(uchar c)
 
 void    odDebug(uchar prefix, uchar *data, uchar len)
 {
-    printHex(prefix);
-    uartPutc(':');
+    uartPrintHex(prefix);
+    uartPutChar(':');
     while(len--){
-        uartPutc(' ');
-        printHex(*data++);
+        uartPutChar(' ');
+        uartPrintHex(*data++);
     }
-    uartPutc('\r');
-    uartPutc('\n');
+    uartPutChar('\r');
+    uartPutChar('\n');
 }
 
 #endif
