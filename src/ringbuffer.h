@@ -1,4 +1,7 @@
 
+#ifndef _RINGBUFFER_H
+#define _RINGBUFFER_H
+
 typedef char * RingBuffer;
 /*
 conceptually:
@@ -51,4 +54,6 @@ static inline unsigned char ringbufferGetChar(RingBuffer rb) {
 	ringbufferIncPtr(rb,_ringbufferRd);
 	return r;
 }
+
+#endif /* _RINGBUFFER_H */
 

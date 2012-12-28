@@ -1,4 +1,7 @@
 
+#ifndef _UART_H
+#define _UART_H
+
 #define uartBufLen 63
 extern unsigned char uartrxbuf[uartBufLen+4];
 extern unsigned char uarttxbuf[uartBufLen+4];
@@ -19,4 +22,6 @@ void uartPuts(char *str);
 
 unsigned char hexAscii(unsigned char h);
 void uartPrintHex(unsigned char c);
+
+#endif /* _UART_H */
 
