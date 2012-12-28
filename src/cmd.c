@@ -60,4 +60,5 @@ void cmdIn(unsigned char c) {
 	cmdInit();
 	uartPutChar('\n');
 	uartPutChar('\r');
+	uartPutChar('?');
 }

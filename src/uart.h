@@ -1,5 +1,5 @@
 
-#define uartBufLen 31
+#define uartBufLen 63
 extern unsigned char uartrxbuf[uartBufLen+4];
 extern unsigned char uarttxbuf[uartBufLen+4];
 #define uartRxBuf ((RingBuffer) uartrxbuf)
