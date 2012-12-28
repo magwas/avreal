@@ -7,8 +7,8 @@
 #include "uart.h"
 
 
-unsigned char uartrxbuf[uartBufLen+3];
-unsigned char uarttxbuf[uartBufLen+3];
+unsigned char uartrxbuf[uartBufLen+4];
+unsigned char uarttxbuf[uartBufLen+4];
 
 void uartInit(void) {
 	ringbufferInit(uartRxBuf,uartBufLen);
@@ -44,10 +44,10 @@ unsigned char uartReceive(void) {
 	loop_until_bit_is_set(UCSR1A, RXC1);
 	return UDR1;
 }
+
 void uartDo(void) {
 	/*transmit*/
-	while ((! ringbufferEmpty(uartTxBuf)) && bit_is_set(UCSR1A,UDRE1))
- {
+	if ((! ringbufferEmpty(uartTxBuf)) && bit_is_set(UCSR1A,UDRE1)) {
 		UDR1 = ringbufferGetChar(uartTxBuf);
 	}
 	/*receive*/
@@ -68,16 +68,16 @@ void uartPuts(char *str){
 }
 
 
-static uchar    hexAscii(uchar h)
+unsigned char hexAscii(unsigned char h)
 {
     h &= 0xf;
     if(h >= 10)
-        h += 'a' - (uchar)10 - '0';
+        return  ('a' - 10 + h) ;
     h += '0';
     return h;
 }
 
-void uartPrintHex(uchar c)
+void uartPrintHex(unsigned char c)
 {
     uartPutChar(hexAscii(c >> 4));
     uartPutChar(hexAscii(c));
@@ -87,7 +87,7 @@ void uartPrintHex(uchar c)
 
 #warning "Never compile production devices with debugging enabled"
 
-void    odDebug(uchar prefix, uchar *data, uchar len)
+void    odDebug(unsigned char prefix, unsigned char *data, unsigned char len)
 {
     uartPrintHex(prefix);
     uartPutChar(':');

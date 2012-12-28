@@ -2,6 +2,8 @@
 # Makefile for the project avreal
 ###############################################################################
 
+DEBUG=2
+
 ## General Flags
 PROJECT = avreal
 #MCU = atmega8
@@ -23,7 +25,7 @@ COMMON = -mmcu=$(MCU)
 CFLAGS = $(COMMON)
 CFLAGS += -Wall -gdwarf-2 -DF_CPU=16000000UL -Os -fsigned-char
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
-CFLAGS += -DBAUD=115200 -DDEBUG_LEVEL=2 $(INCLUDES)
+CFLAGS += -DBAUD=115200 -DDEBUG_LEVEL=$(DEBUG) $(INCLUDES)
 
 ## Assembly specific flags
 ASMFLAGS = $(COMMON)

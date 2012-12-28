@@ -51,6 +51,12 @@ int main(void) {
 	}
 	assert(ringbufferEmpty(uartTxBuf));
 
+	assert('0' == hexAscii(0x0));
+	assert('1' == hexAscii(0x1));
+	assert('a' == hexAscii(0xa));
+	assert('f' == hexAscii(0xf));
+	assert('1' == hexAscii(0x1a >> 4));
+	assert('a' == hexAscii(0xa1 >> 4));
 	uartPrintHex(0x1A);
 	assert('1' == ringbufferGetChar(uartTxBuf));
 	assert('a' == ringbufferGetChar(uartTxBuf));

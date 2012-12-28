@@ -1,4 +1,5 @@
 #include <usbdrv.h>
+#include "ringbuffer.h"
 #include "uart.h"
 #include "cmd.h"
 #include <oddebug.h>
@@ -13,6 +14,15 @@ void do_stats() {
 
 void cmd_in(unsigned char c) {
 	unsigned char * i;
+/*
+	unsigned int j;
+	for(j=0;j<64;j++) {
+		uartTransmit(hexAscii((uartTxBuf[j])>>4));
+		uartTransmit(hexAscii((uartTxBuf[j])));
+	}
+	uartTransmit('\n');
+	uartTransmit('\r');
+*/
 	switch(c) {
 		case 'X':
 			UDEBUG("sending zero");
