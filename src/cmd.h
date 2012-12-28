@@ -1,4 +1,4 @@
 
-extern void cmd_init() ;
-extern void cmd_in(unsigned char c) ;
+extern void cmdInit() ;
+extern void cmdIn(unsigned char c) ;
 

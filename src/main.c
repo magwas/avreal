@@ -272,7 +272,7 @@ int main(void)
 	wdt_enable(WDTO_1S);
 	//odDebugInit();
 	uartInit();
-	cmd_init();
+	cmdInit();
 	UDEBUG("hello");
 	hardwareInit();
 	usbInit();
@@ -292,7 +292,7 @@ int main(void)
 		unsigned char c = uartGetChar();
 		if (c) {
 			uartPutChar(c);
-			cmd_in(c);
+			cmdIn(c);
 		}
 
 #if USB_CFG_HAVE_INTRIN_ENDPOINT3

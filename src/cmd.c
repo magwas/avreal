@@ -5,30 +5,42 @@
 #include <oddebug.h>
 
 
-void cmd_init() {
+unsigned char cmdBuf[16];
+unsigned char cmdBufP;
+
+void cmdInit() {
+	cmdBufP = 0;
 }
 
+int p;
 
-void do_stats() {
-}
-
-void cmd_in(unsigned char c) {
-	unsigned char * i;
-/*
-	unsigned int j;
-	for(j=0;j<64;j++) {
-		uartTransmit(hexAscii((uartTxBuf[j])>>4));
-		uartTransmit(hexAscii((uartTxBuf[j])));
+void cmdIn(unsigned char c) {
+	if (c != '\r') {
+		if (cmdBufP<16) {
+			cmdBuf[cmdBufP++]=c;
+		}else{
+			cmdInit();
+		}
+		return;
 	}
-	uartTransmit('\n');
-	uartTransmit('\r');
-*/
-	switch(c) {
+	uartPutChar('\n');
+	unsigned char * i;
+	int j;
+	if(cmdBufP>1) {
+		p=0;
+		for(j=1;j<cmdBufP;j++) {
+			p = p <<4;
+			p += cmdBuf[j]-'0';
+		}
+	}
+	switch(cmdBuf[0]) {
 		case 'X':
 			UDEBUG("sending zero");
 			usbSetInterrupt((unsigned char *)"",0);
+			UDEBUG("zero sent");
 			break;
 		case 'x':
+			UDEBUG("sending hi");
 			usbSetInterrupt((unsigned char *)"hi!\n\r",5);
 			UDEBUG("hi sent");
 			// no break
@@ -40,13 +52,12 @@ void cmd_in(unsigned char c) {
 			uartPrintHex(usbRxLen);
 			break;
 		case 'd':
-			for(i=(unsigned char *)4;i<(unsigned char *)14;i++) {
+			for(i=(unsigned char *)p;i<(unsigned char *)p+16;i++) {
 				uartPrintHex(*i);
 			}
-			uartPutChar('\n');
-			uartPutChar('\r');
 			break;
-		default:
-			cmd_init();
 	}
+	cmdInit();
+	uartPutChar('\n');
+	uartPutChar('\r');
 }
